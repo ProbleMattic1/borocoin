@@ -1,0 +1,313 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Township Rewards • Starter Kit</title>
+  <style>
+    :root { --bg:#0f172a; --fg:#e2e8f0; --ac:#38bdf8; --card:#111827; --mut:#94a3b8; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: linear-gradient(135deg,#0f172a,#111827); color:var(--fg); }
+    header { padding:24px; display:flex; justify-content:space-between; align-items:center; }
+    .brand { font-weight:800; letter-spacing:.5px; font-size:clamp(18px,3vw,24px); }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px; box-shadow:0 10px 24px rgba(0,0,0,.35); }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); padding:16px; }
+    button { background: var(--ac); color:#001018; border:none; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--fg); border:1px solid rgba(255,255,255,.2); }
+    input, select { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:#0b1220; color:var(--fg); }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row > * { flex:1; }
+    .muted { color:var(--mut); font-size:12px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; }
+    .ok { background:rgba(34,197,94,.15); color:#86efac; }
+    .warn { background:rgba(245,158,11,.15); color:#fde68a; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:8px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; font-size:14px; }
+    footer { padding:16px; text-align:center; color:var(--mut); font-size:12px; }
+    .token { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">🏙️ Township Rewards • Starter Kit</div>
+    <div id="who" class="muted"></div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="section-title">1) Quick Login (Demo Identities)</div>
+      <div class="row">
+        <select id="identity">
+          <option value="admin">admin (Program Admin)</option>
+          <option value="merchant1">merchant1 (Sunny Cafe)</option>
+          <option value="merchant2">merchant2 (Hillsborough Books)</option>
+          <option value="user1">user1 (Alex Johnson)</option>
+          <option value="user2">user2 (Sam Rivera)</option>
+        </select>
+        <button onclick="login()">Login</button>
+      </div>
+      <p class="muted">Local demo only. Replace this login with OTP/magic link later.</p>
+      <div class="muted">JWT: <span id="jwt" class="token"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">2) User</div>
+      <div class="row">
+        <select id="userId">
+          <option value="user1">user1</option>
+          <option value="user2">user2</option>
+        </select>
+        <button class="ghost" onclick="checkBalance()">Check Balance</button>
+      </div>
+      <div id="userBalance" class="muted">Balance: —</div>
+      <div class="row" style="margin-top:8px;">
+        <button onclick="showQR()">Show QR (5 min)</button>
+        <button class="ghost" onclick="refreshQR()">Refresh</button>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:8px;">
+        <img id="qr_img" alt="QR" style="width:150px;height:150px; border-radius:12px; background:#0b1220; border:1px solid rgba(255,255,255,.15); object-fit:contain;">
+        <div class="muted">Short-lived, signed QR for the selected user. Merchant scanner auto-fills the user.</div>
+      </div>
+      <hr>
+      <div class="section-title">History (Recent)</div>
+      <div style="max-height:200px; overflow:auto;">
+        <table id="txTable">
+          <thead><tr><th>Time</th><th>Type</th><th>User</th><th>Merchant</th><th>Amt</th><th>Hash</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">3) Merchant</div>
+      <div class="row">
+        <input id="m_user_id" placeholder="user id (e.g., user1)">
+        <input id="m_amount" type="number" placeholder="amount">
+      </div>
+      <div class="row">
+        <button onclick="scanQR()">Scan QR (camera)</button>
+        <span class="muted">Auto-fills user</span>
+      </div>
+      <div id="qr_note" class="muted"></div>
+      <div class="row">
+        <input id="m_note" placeholder="note (optional)">
+      </div>
+      <div class="row">
+        <button onclick="earn()">Post EARN (give points)</button>
+        <button onclick="redeem()" class="ghost">Post REDEEM (spend points)</button>
+      </div>
+      <div id="m_status" class="muted"></div>
+      <div class="row" style="margin-top:8px;">
+        <button onclick="merchantBalance()">Merchant Balance</button>
+        <div id="merchantBalance" class="muted">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">4) Admin</div>
+      <div class="row">
+        <input id="a_user_id" placeholder="user id (e.g., user1)">
+        <input id="a_amount" type="number" placeholder="amount">
+      </div>
+      <div class="row">
+        <input id="a_note" placeholder="note (optional)">
+      </div>
+      <div class="row">
+        <button onclick="issue()">Issue Points (mint → user)</button>
+        <button onclick="anchor()" class="ghost">Anchor Day (Merkle root)</button>
+      </div>
+      <div id="a_status" class="muted"></div>
+      <hr>
+      <div class="section-title">Admin Settings</div>
+      <div class="row">
+        <input id="expiry_days" type="number" placeholder="expiry days (0 = off)">
+        <button onclick="saveSettings()">Save</button>
+        <button class="ghost" onclick="runExpiry()">Run Expiry Now</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input id="settle_from" type="date">
+        <input id="settle_to" type="date">
+        <button onclick="downloadSettlement()">Download Settlement CSV</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input id="cfg_mid" placeholder="merchant id (e.g., merchant1)">
+        <input id="cfg_rate" type="number" placeholder="rate/min">
+        <input id="cfg_ecap" type="number" placeholder="daily earn cap">
+        <input id="cfg_rcap" type="number" placeholder="daily redeem cap">
+        <button onclick="saveMerchantConfig()">Save Merchant Caps</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Closed-loop demo. No cash value. Non-transferable. For local testing only.</footer>
+
+<script>
+let TOKEN = null;
+const $ = (id) => document.getElementById(id);
+const API = (path, opts={}) => fetch(path, Object.assign({
+  headers: Object.assign({'Content-Type': 'application/json'}, TOKEN? {'Authorization': 'Bearer ' + TOKEN} : {})
+}, opts));
+
+function setWho(w){ $('who').innerText = w || ''; }
+function setToken(t){ TOKEN = t; $('jwt').innerText = (t ? t.slice(0,32) + '…' : '—'); }
+
+async function login(){
+  const identity = $('identity').value;
+  const res = await API('/auth/login', { method:'POST', body: JSON.stringify({identity}) });
+  if(!res.ok){ alert('login failed'); return; }
+  const data = await res.json();
+  setToken(data.token);
+  setWho(`${data.role} • ${data.name}`);
+  loadTxs();
+}
+
+async function checkBalance(){
+  const userId = $('userId').value;
+  const res = await API('/balance/' + encodeURIComponent(userId));
+  if(!res.ok){ alert('balance failed'); return; }
+  const data = await res.json();
+  $('userBalance').innerText = `Balance: ${data.balance} pts`;
+}
+
+async function loadTxs(){
+  const res = await API('/transactions?limit=50');
+  if(!res.ok) return;
+  const data = await res.json();
+  const tbody = $('txTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  data.transactions.forEach(tx => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${new Date(tx.ts).toLocaleString()}</td>
+      <td><span class="pill ${tx.ttype==='EARN'?'ok':(tx.ttype==='REDEEM'?'warn':'')}">${tx.ttype}</span></td>
+      <td>${tx.user_id||''}</td><td>${tx.merchant_id||''}</td>
+      <td>${tx.amount}</td><td class="token">${tx.thash.slice(0,12)}…</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function earn(){
+  const user_id = $('m_user_id').value;
+  const amount = parseInt($('m_amount').value||'0',10);
+  const note = $('m_note').value;
+  const res = await API('/earn', { method:'POST', body: JSON.stringify({user_id, amount, note}) });
+  const t = $('m_status');
+  if(!res.ok){ const e = await res.json().catch(()=>({detail:'err'})); t.innerText = 'EARN failed: ' + (e.detail||''); return; }
+  const data = await res.json();
+  t.innerText = `EARN ok • tx ${data.tx.id}`;
+  loadTxs();
+}
+
+async function redeem(){
+  const user_id = $('m_user_id').value;
+  const amount = parseInt($('m_amount').value||'0',10);
+  const note = $('m_note').value;
+  const res = await API('/redeem', { method:'POST', body: JSON.stringify({user_id, amount, note}) });
+  const t = $('m_status');
+  if(!res.ok){ const e = await res.json().catch(()=>({detail:'err'})); t.innerText = 'REDEEM failed: ' + (e.detail||''); return; }
+  const data = await res.json();
+  t.innerText = `REDEEM ok • tx ${data.tx.id}`;
+  loadTxs();
+}
+
+async function merchantBalance(){
+  const res = await API('/merchant/balance');
+  if(!res.ok){ $('merchantBalance').innerText = '— (merchant login required)'; return; }
+  const data = await res.json();
+  $('merchantBalance').innerText = `${data.balance} pts`;
+}
+
+// User QR
+async function showQR(){
+  const uid = $('userId').value;
+  if(!TOKEN){ alert('Login first'); return; }
+  const url = `/qr/user/${encodeURIComponent(uid)}.png?ttl=300&t=${Date.now()}`;
+  $('qr_img').src = url;
+}
+function refreshQR(){ showQR(); }
+
+// Merchant QR scanner (BarcodeDetector)
+async function scanQR(){
+  try{
+    if(!('BarcodeDetector' in window)){
+      $('qr_note').innerText = 'BarcodeDetector not supported in this browser.';
+      return;
+    }
+    const formats = await BarcodeDetector.getSupportedFormats();
+    if(!formats.includes('qr_code')){
+      $('qr_note').innerText = 'QR not supported on this device.';
+      return;
+    }
+    const detector = new BarcodeDetector({formats: ['qr_code']});
+    const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
+    const video = document.createElement('video');
+    video.srcObject = stream; await video.play();
+    const overlay = document.createElement('div');
+    overlay.style.position='fixed'; overlay.style.inset='0'; overlay.style.background='rgba(0,0,0,.85)';
+    overlay.style.display='grid'; overlay.style.placeItems='center'; overlay.style.zIndex='9999';
+    const inner = document.createElement('div'); inner.className='card'; inner.style.padding='12px'; inner.style.width='min(90vw,600px)';
+    inner.appendChild(video);
+    const btn = document.createElement('button'); btn.className='ghost'; btn.textContent='Close';
+    btn.onclick = ()=>{ stream.getTracks().forEach(t=>t.stop()); overlay.remove(); };
+    inner.appendChild(btn); overlay.appendChild(inner); document.body.appendChild(overlay);
+    let done=false;
+    async function tick(){
+      if(done) return;
+      let codes = [];
+      try{ codes = await detector.detect(video); }catch(e){}
+      if(codes && codes.length){
+        const raw = codes[0].rawValue||'';
+        try{
+          const u = new URL(raw);
+          const d = u.searchParams.get('d');
+          const res = await API('/qr/verify', {method:'POST', body: JSON.stringify({d})});
+          const json = await res.json();
+          if(json.ok && json.uid){
+            $('m_user_id').value = json.uid;
+            $('qr_note').innerText = 'Scanned user: ' + json.uid;
+            done = true; stream.getTracks().forEach(t=>t.stop()); overlay.remove(); return;
+          } else {
+            $('qr_note').innerText = 'Invalid/expired QR';
+          }
+        }catch(e){ $('qr_note').innerText = 'Unrecognized code'; }
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }catch(err){
+    $('qr_note').innerText = 'Camera error: ' + err;
+  }
+}
+
+// Admin settings + reports
+async function saveSettings(){
+  const days = parseInt($('expiry_days').value||'0',10);
+  const res = await API('/admin/settings', {method:'POST', body: JSON.stringify({expiry_days: days})});
+  if(!res.ok){ alert('save failed'); return; }
+  $('a_status').innerText = 'Saved settings';
+}
+async function runExpiry(){
+  const res = await API('/admin/expire/run', {method:'POST'});
+  const data = await res.json();
+  $('a_status').innerText = 'Expiry: ' + JSON.stringify(data);
+}
+async function downloadSettlement(){
+  const f = $('settle_from').value, t = $('settle_to').value;
+  if(!f || !t){ alert('pick dates'); return; }
+  const url = `/admin/settlement.csv?date_from=${encodeURIComponent(f)}&date_to=${encodeURIComponent(t)}`;
+  const a = document.createElement('a'); a.href = url; a.download = `settlement_${f}_${t}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+async function saveMerchantConfig(){
+  const body = {
+    merchant_id: $('cfg_mid').value,
+    rate_limit_per_minute: parseInt($('cfg_rate').value||'60',10),
+    daily_earn_cap: parseInt($('cfg_ecap').value||'100000',10),
+    daily_redeem_cap: parseInt($('cfg_rcap').value||'100000',10),
+  };
+  const res = await API('/admin/merchant/config', {method:'POST', body: JSON.stringify(body)});
+  if(!res.ok){ alert('save failed'); return; }
+  $('a_status').innerText = 'Merchant caps saved';
+}
+</script>
+</body>
+</html>
